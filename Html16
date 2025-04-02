@@ -1,0 +1,45 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+import csv
+import time
+
+def scrape_kinopoisk():
+    url = "https://www.kinopoisk.ru/afisha/new/"  # Страница "Скоро в кино"
+    
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")  # Запуск без открытия окна браузера
+    options.add_argument("--disable-blink-features=AutomationControlled")  # Обход детектирования бота
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    
+    driver.get(url)
+    time.sleep(5)  # Ждём загрузки страницы
+    
+    movies = driver.find_elements(By.CLASS_NAME, "styles_root__2hZLi")[:10]  # Получаем первые 10 фильмов
+    
+    movie_data = []
+    
+    for movie in movies:
+        try:
+            title = movie.find_element(By.CLASS_NAME, "styles_title__65Zwx").text.strip()
+            author = movie.find_element(By.CLASS_NAME, "styles_info__1Pd3k").text.strip()
+            country = movie.find_element(By.CLASS_NAME, "styles_country__2DaJ0").text.strip()
+            premiere_date = movie.find_element(By.CLASS_NAME, "styles_premiere__3HXpQ").text.strip()
+            
+            movie_data.append([title, author, country, premiere_date])
+        except Exception as e:
+            print(f"Ошибка при парсинге фильма: {e}")
+            continue
+    
+    driver.quit()
+    
+    with open("movies.csv", "w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerow(["Название", "Автор", "Страна", "Дата премьеры"])
+        writer.writerows(movie_data)
+    
+    print("Данные сохранены в movies.csv")
+
+if __name__ == "__main__":
+    scrape_kinopoisk()
